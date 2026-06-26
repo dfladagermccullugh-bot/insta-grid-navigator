@@ -15,11 +15,7 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://*.instagram.com/your_activity/*",
-        "https://*.instagram.com/saved/*",
-        "https://*.instagram.com/*/saved/*"
-      ],
+      "matches": ["https://*.instagram.com/*"],
       "js": ["content.js"],
       "css": ["styles.css"],
       "run_at": "document_end"

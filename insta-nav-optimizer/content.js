@@ -248,6 +248,9 @@
 
   function processAllCells() {
     const cells = findGridCells();
+    if (cells.length) {
+      console.debug("[IGOpt] processing", cells.length, "new grid cell(s)");
+    }
     cells.forEach(processCell);
   }
 
@@ -373,20 +376,52 @@
     return SCROLL_KEY_PREFIX + location.pathname;
   }
 
+  /**
+   * Instagram's activity / saved grids scroll inside an inner container, NOT the
+   * window. Find the nearest scrollable ancestor of a grid cell; fall back to
+   * the window scroller if none is found yet (e.g. before cells render).
+   */
+  function getScroller() {
+    const cell = document.querySelector("[" + CELL_ATTR + "]");
+    let node = cell ? cell.parentElement : null;
+    while (node && node !== document.body && node !== document.documentElement) {
+      const oy = getComputedStyle(node).overflowY;
+      if (
+        (oy === "auto" || oy === "scroll") &&
+        node.scrollHeight > node.clientHeight + 8
+      ) {
+        return node;
+      }
+      node = node.parentElement;
+    }
+    return window;
+  }
+
+  function getScrollTop(scroller) {
+    return scroller === window ? window.scrollY || window.pageYOffset : scroller.scrollTop;
+  }
+
+  function setScrollTop(scroller, y) {
+    if (scroller === window) window.scrollTo({ top: y, behavior: "auto" });
+    else scroller.scrollTop = y;
+  }
+
   function saveScroll() {
+    if (!isTargetPath()) return;
     try {
-      sessionStorage.setItem(scrollKey(), String(window.scrollY));
+      sessionStorage.setItem(scrollKey(), String(getScrollTop(getScroller())));
     } catch (e) {
       /* storage may be unavailable; ignore */
     }
   }
 
   /**
-   * Restore the saved Y. Because the SPA lazy-renders, the document may be too
-   * short to scroll to the target immediately. We retry on an interval, growing
-   * the page as content paints, and stop once we're close enough or time out.
+   * Restore the saved offset. Because the SPA lazy-renders, the container may be
+   * too short to scroll to the target immediately. We retry on an interval,
+   * growing as content paints, and stop once we're close enough or time out.
    */
   function restoreScroll() {
+    if (!isTargetPath()) return;
     let saved;
     try {
       saved = parseInt(sessionStorage.getItem(scrollKey()) || "", 10);
@@ -400,8 +435,9 @@
     const STEP = 150;
 
     const timer = setInterval(function () {
-      window.scrollTo({ top: saved, behavior: "auto" });
-      const reached = Math.abs(window.scrollY - saved) < 4;
+      const scroller = getScroller();
+      setScrollTop(scroller, saved);
+      const reached = Math.abs(getScrollTop(scroller) - saved) < 4;
       if (reached || Date.now() - start > DURATION) {
         clearInterval(timer);
       }
@@ -409,8 +445,11 @@
   }
 
   function initScrollMemory() {
-    window.addEventListener("scroll", throttle(saveScroll, 200), {
+    // Use capture phase: scroll events on Instagram's inner container do not
+    // bubble to window, but they are observable during capture on document.
+    document.addEventListener("scroll", throttle(saveScroll, 200), {
       passive: true,
+      capture: true,
     });
     // Persist on the way out too (covers in-tab navigation).
     window.addEventListener("beforeunload", saveScroll);
@@ -463,18 +502,25 @@
   }
 
   function init() {
-    if (!isTargetPath()) {
-      // Still hook history/observer in case the user navigates into a target.
-      hookHistory();
-      startObserver();
-      return;
-    }
-    ensureSearchBar();
+    console.info(
+      "[IGOpt] content script loaded on",
+      location.pathname,
+      "— target page:",
+      isTargetPath()
+    );
+
+    // These are cheap and globally safe (guarded internally), so install them
+    // unconditionally. That way, navigating INTO a target page via Instagram's
+    // client-side router still activates every feature.
     initTooltipDelegation();
     initScrollMemory();
     hookHistory();
     startObserver();
-    schedule();
+
+    if (isTargetPath()) {
+      ensureSearchBar();
+      schedule();
+    }
   }
 
   init();
