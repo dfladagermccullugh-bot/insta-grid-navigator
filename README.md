@@ -89,6 +89,19 @@ This project is intentionally minimal for speed and performance:
 - **No dependencies** — nothing to `npm install`.
 - **No automated tests** — testing is done manually by loading the unpacked extension (see above).
 
+## Limitations
+
+Some Instagram grids (notably **Your Activity → Likes/Comments**) are rendered
+with **Bloks**, Meta's server-driven UI. On those pages the thumbnails carry no
+caption/description text in the DOM (`alt` is empty), so:
+
+- **Open-in-new-tab still works** — the post link is reconstructed from the
+  thumbnail's embedded media id (`ig_cache_key` → shortcode → `/p/<shortcode>/`).
+- **Hover tooltips and keyword search are inert there** because there is no text
+  to read, so the search bar **auto-hides** on those grids. Both features
+  activate automatically on grids that do expose `alt` text (e.g. standard
+  profile / Saved React grids).
+
 ## Compatibility
 
 Desktop **Chromium-based browsers** (Chrome, Edge, Brave, etc.) with Manifest V3

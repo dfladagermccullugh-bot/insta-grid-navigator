@@ -315,7 +315,8 @@
     const cells = findGridCells();
     if (cells.length) {
       const sample = cells[0];
-      console.info(
+      // Verbose (hidden by default) — useful when debugging selector/URL issues.
+      console.debug(
         "[IGOpt] processed",
         cells.length,
         "new grid cell(s); sample url=",
@@ -326,6 +327,7 @@
     cells.forEach(processCell);
     processedCount += cells.length;
     updateBadge();
+    updateSearchBarVisibility();
   }
 
   // ----------------------------------------------------------------------------
@@ -437,7 +439,7 @@
     // somehow fails to load/apply. Theming/colors still come from styles.css.
     wrap.style.cssText =
       "position:fixed;top:12px;left:50%;transform:translateX(-50%);" +
-      "z-index:2147483646;width:min(420px,90vw);";
+      "z-index:2147483646;width:min(420px,90vw);display:none;";
 
     const input = document.createElement("input");
     input.type = "text";
@@ -458,12 +460,19 @@
     wrap.appendChild(input);
     document.body.appendChild(wrap);
     searchBar = wrap;
-    console.info(
-      "[IGOpt] search bar injected (in DOM:",
-      document.body.contains(wrap),
-      ")"
-    );
+    console.debug("[IGOpt] search bar injected (in DOM:", document.body.contains(wrap), ")");
     return searchBar;
+  }
+
+  /**
+   * The search bar is only useful where thumbnails expose caption text. Reveal
+   * it only when at least one cell has indexable alt text; otherwise (e.g. the
+   * Bloks Your Activity grid) keep it hidden so there's no dead UI.
+   */
+  function updateSearchBarVisibility() {
+    if (!searchBar) return;
+    const hasText = !!document.querySelector("[" + ALT_ATTR + "]");
+    searchBar.style.display = hasText ? "" : "none";
   }
 
   /** Show/hide cells based on the current query against cached alt text. */
@@ -597,8 +606,8 @@
       if (searchBar) searchBar.style.display = "none";
       return;
     }
-    if (searchBar) searchBar.style.display = "";
     ensureSearchBar();
+    updateSearchBarVisibility();
     schedule();
     restoreScroll();
   }
@@ -644,7 +653,7 @@
       // grid has had a moment to render.
       setTimeout(function () {
         const s = getScroller();
-        console.info(
+        console.debug(
           "[IGOpt] scroll container:",
           s === window ? "window" : s.tagName + "." + (s.className || "")
         );
