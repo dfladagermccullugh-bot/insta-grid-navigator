@@ -246,12 +246,49 @@
     });
   }
 
+  // Running total of cells we've wrapped, surfaced in the status badge.
+  let processedCount = 0;
+
   function processAllCells() {
     const cells = findGridCells();
     if (cells.length) {
-      console.debug("[IGOpt] processing", cells.length, "new grid cell(s)");
+      const sample = cells[0];
+      console.info(
+        "[IGOpt] processed",
+        cells.length,
+        "new grid cell(s); sample url=",
+        resolvePostUrl(sample.cell) || "(none)",
+        'alt="' + ((sample.img.getAttribute("alt") || "").slice(0, 60)) + '"'
+      );
     }
     cells.forEach(processCell);
+    processedCount += cells.length;
+    updateBadge();
+  }
+
+  // ----------------------------------------------------------------------------
+  // Status badge — unmissable visual confirmation that the script is live.
+  // Positioned inline (not reliant on styles.css) so it shows regardless.
+  // ----------------------------------------------------------------------------
+
+  let badgeEl = null;
+
+  function ensureBadge() {
+    if (badgeEl && document.body.contains(badgeEl)) return badgeEl;
+    badgeEl = document.createElement("div");
+    badgeEl.className = "igopt-badge";
+    badgeEl.style.cssText =
+      "position:fixed;bottom:12px;right:12px;z-index:2147483647;" +
+      "padding:4px 8px;border-radius:6px;font:600 11px/1.4 -apple-system," +
+      "BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;" +
+      "background:rgba(0,0,0,0.8);color:#fff;pointer-events:none;" +
+      "box-shadow:0 1px 4px rgba(0,0,0,0.4);";
+    document.body.appendChild(badgeEl);
+    return badgeEl;
+  }
+
+  function updateBadge() {
+    ensureBadge().textContent = "IGOpt: " + processedCount + " posts";
   }
 
   // ----------------------------------------------------------------------------
@@ -334,6 +371,11 @@
 
     const wrap = document.createElement("div");
     wrap.className = "igopt-searchbar";
+    // Critical layout applied inline so the bar is visible even if styles.css
+    // somehow fails to load/apply. Theming/colors still come from styles.css.
+    wrap.style.cssText =
+      "position:fixed;top:12px;left:50%;transform:translateX(-50%);" +
+      "z-index:2147483646;width:min(420px,90vw);";
 
     const input = document.createElement("input");
     input.type = "text";
@@ -341,6 +383,10 @@
     input.placeholder = "Filter loaded posts by caption / description…";
     input.autocomplete = "off";
     input.spellcheck = false;
+    input.style.cssText =
+      "width:100%;box-sizing:border-box;padding:8px 12px;font-size:13px;" +
+      "border-radius:8px;outline:none;border:1px solid #888;" +
+      "background:#fff;color:#000;box-shadow:0 1px 6px rgba(0,0,0,0.25);";
 
     input.addEventListener("input", function () {
       currentQuery = input.value.trim().toLowerCase();
@@ -350,6 +396,11 @@
     wrap.appendChild(input);
     document.body.appendChild(wrap);
     searchBar = wrap;
+    console.info(
+      "[IGOpt] search bar injected (in DOM:",
+      document.body.contains(wrap),
+      ")"
+    );
     return searchBar;
   }
 
@@ -519,7 +570,17 @@
 
     if (isTargetPath()) {
       ensureSearchBar();
+      updateBadge();
       schedule();
+      // Log the scroll container we'll use (window vs an inner element) once the
+      // grid has had a moment to render.
+      setTimeout(function () {
+        const s = getScroller();
+        console.info(
+          "[IGOpt] scroll container:",
+          s === window ? "window" : s.tagName + "." + (s.className || "")
+        );
+      }, 1500);
     }
   }
 

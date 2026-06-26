@@ -18,6 +18,11 @@ a.igopt-link {
   text-decoration: none;
 }
 
+/* --- Status badge (positioning is set inline in JS; this is theming only) --- */
+.igopt-badge {
+  letter-spacing: 0.2px;
+}
+
 /* --- Hover tooltip --- */
 .igopt-tooltip {
   position: fixed;
