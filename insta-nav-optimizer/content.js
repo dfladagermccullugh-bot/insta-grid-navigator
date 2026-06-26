@@ -86,7 +86,64 @@
     if (anchor && anchor.getAttribute("href")) {
       return anchor.getAttribute("href");
     }
+    // Bloks-rendered grids (e.g. Your Activity) have no anchors/fiber hrefs, but
+    // the thumbnail's src carries the media id, from which we can rebuild the URL.
+    const img = cell.matches && cell.matches("img") ? cell : cell.querySelector("img");
+    const fromImg = img ? urlFromImg(img) : null;
+    if (fromImg) return fromImg;
     return resolveUrlFromFiber(cell);
+  }
+
+  // Instagram's base64 alphabet for shortcodes.
+  const IG_ALPHABET =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+  /** Read the numeric media id embedded in a thumbnail's ig_cache_key. */
+  function mediaIdFromImg(img) {
+    try {
+      const src = img.getAttribute("src") || img.src || "";
+      const u = new URL(src, location.origin);
+      const key = u.searchParams.get("ig_cache_key");
+      if (!key) return null;
+      // Value looks like "<base64>.<suffix>"; decode the base64 segment.
+      const decoded = atob(key.split(".")[0]);
+      const m = decoded.match(/^\d+/);
+      return m ? m[0] : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /** Convert a numeric media id (decimal string) to its Instagram shortcode. */
+  function shortcodeFromMediaId(idStr) {
+    let n;
+    try {
+      n = BigInt(idStr);
+    } catch (e) {
+      return null;
+    }
+    if (n <= 0n) return null;
+    let out = "";
+    while (n > 0n) {
+      out = IG_ALPHABET[Number(n & 63n)] + out;
+      n >>= 6n;
+    }
+    return out;
+  }
+
+  /** Build a /p/<shortcode>/ URL from a thumbnail image, or null. */
+  function urlFromImg(img) {
+    const id = mediaIdFromImg(img);
+    if (!id) return null;
+    const code = shortcodeFromMediaId(id);
+    return code ? "/p/" + code + "/" : null;
+  }
+
+  /** True if an <img> is an actual grid media thumbnail (not an avatar/icon). */
+  function isMediaThumbnail(img) {
+    if (!mediaIdFromImg(img)) return false;
+    if (/profile picture/i.test(img.getAttribute("alt") || "")) return false;
+    return true;
   }
 
   /**
@@ -149,6 +206,11 @@
     const imgs = document.querySelectorAll("img:not([" + PROCESSED_ATTR + "])");
     const cells = [];
     imgs.forEach(function (img) {
+      // Mark every img we consider so avatars/icons aren't re-scanned forever.
+      if (!isMediaThumbnail(img)) {
+        img.setAttribute(PROCESSED_ATTR, "1");
+        return;
+      }
       const cell = findCellContainer(img);
       if (cell) cells.push({ cell: cell, img: img });
     });
@@ -415,6 +477,12 @@
     }
     cells.forEach(function (cell) {
       const alt = (cell.getAttribute(ALT_ATTR) || "").toLowerCase();
+      // Cells with no indexable text (e.g. Bloks thumbnails with empty alt) are
+      // never hidden — otherwise a query would blank the whole grid.
+      if (!alt) {
+        cell.style.display = "";
+        return;
+      }
       cell.style.display = alt.indexOf(currentQuery) !== -1 ? "" : "none";
     });
   }
