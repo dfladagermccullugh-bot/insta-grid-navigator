@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Instagram Activity & Grid Optimizer",
+  "version": "1.0",
+  "description": "Restores middle-click, right-click, scroll memory, and adds hovering search utilities to your desktop activity grids.",
+  "permissions": ["activeTab"],
+  "icons": {
+    "128": "icon.png"
+  },
+  "action": {
+    "default_icon": {
+      "128": "icon.png"
+    },
+    "default_title": "Instagram Activity & Grid Optimizer"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.instagram.com/your_activity/*",
+        "https://*.instagram.com/saved/*",
+        "https://*.instagram.com/*/saved/*"
+      ],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    }
+  ]
+}

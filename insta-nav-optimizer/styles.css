@@ -1,0 +1,98 @@
+/*
+ * Instagram Activity & Grid Optimizer — styles
+ * All selectors namespaced with `.igopt-` to avoid clashing with Instagram.
+ * Theme-aware via prefers-color-scheme so it blends with native light/dark.
+ */
+
+/* --- Overlay anchor: invisible, covers the thumbnail, captures gestures --- */
+a.igopt-link {
+  position: absolute;
+  inset: 0;
+  display: block;
+  z-index: 5;
+  /* Transparent: we only need it to receive clicks, not to be seen. */
+  background: transparent;
+  cursor: pointer;
+  /* Explicitly enable in case an ancestor disabled pointer events. */
+  pointer-events: auto;
+  text-decoration: none;
+}
+
+/* --- Hover tooltip --- */
+.igopt-tooltip {
+  position: fixed;
+  z-index: 2147483647;
+  max-width: 320px;
+  max-height: 180px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 6px 8px;
+  border-radius: 4px;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+}
+
+/* --- Injected search bar --- */
+.igopt-searchbar {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483646;
+  width: min(420px, 90vw);
+}
+
+.igopt-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 8px;
+  outline: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Light theme (default) */
+.igopt-search-input {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #dbdbdb;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.igopt-search-input::placeholder {
+  color: #8e8e8e;
+}
+
+.igopt-search-input:focus {
+  border-color: #a8a8a8;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.16);
+}
+
+/* Dark theme — match Instagram's dark surfaces */
+@media (prefers-color-scheme: dark) {
+  .igopt-search-input {
+    background: #262626;
+    color: #f5f5f5;
+    border: 1px solid #363636;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  .igopt-search-input::placeholder {
+    color: #a8a8a8;
+  }
+
+  .igopt-search-input:focus {
+    border-color: #555;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+  }
+}
